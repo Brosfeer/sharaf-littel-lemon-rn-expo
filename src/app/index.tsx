@@ -1,35 +1,34 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
-  FlatList,
   Text,
+  SectionList,
+  TextInput,
+  TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  TouchableOpacity,
+  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useRouter, useFocusEffect } from 'expo-router';
-import { Header } from '@/components/Header';
-import { HeroSection } from '@/components/HeroSection';
-import { MenuBreakdown } from '@/components/MenuBreakdown';
-import { DishItemRow } from '@/components/DishItemRow';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { MenuItem } from '@/types/menu';
-import { UserProfile } from '@/types/profile';
 import {
   fetchMenuItems,
-  filterMenuItems,
+  filterMenuSections,
+  CATEGORIES,
 } from '@/services/menuService';
-import { getUserProfile } from '@/services/storage';
 import { LittleLemonColors } from '@/constants/theme';
 
 export default function HomeScreen() {
-  const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([
+    ...CATEGORIES,
+  ]);
 
   useEffect(() => {
     let isMounted = true;
@@ -53,26 +52,6 @@ export default function HomeScreen() {
     };
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      let isMounted = true;
-      async function loadProfile() {
-        const user = await getUserProfile();
-        if (isMounted) {
-          if (!user.isOnboarded) {
-            router.replace('/onboarding');
-            return;
-          }
-          setProfile(user);
-        }
-      }
-      loadProfile();
-      return () => {
-        isMounted = false;
-      };
-    }, [router])
-  );
-
   const handleToggleCategory = (category: string) => {
     setSelectedCategories((prev) => {
       if (prev.includes(category)) {
@@ -83,94 +62,109 @@ export default function HomeScreen() {
     });
   };
 
-  const filteredDishes = useMemo(() => {
-    return filterMenuItems(menuItems, searchQuery, selectedCategories);
+  const sections = useMemo(() => {
+    return filterMenuSections(menuItems, searchQuery, selectedCategories);
   }, [menuItems, searchQuery, selectedCategories]);
 
-  const availableCategories = useMemo(() => {
-    const defaultList = ['starters', 'mains', 'desserts', 'drinks'];
-    const found = Array.from(new Set(menuItems.map((item) => item.category)));
-    return found.length > 0 ? found : defaultList;
-  }, [menuItems]);
+  return (
+    <View
+      style={[
+        styles.container,
+        {
+          paddingTop: Math.max(insets.top, Platform.OS === 'ios' ? 44 : 16),
+        },
+      ]}
+    >
+      <StatusBar style="light" />
 
-  const handleProfilePress = () => {
-    router.push('/profile');
-  };
-
-  const renderHeader = () => (
-    <View>
-      <Header
-        showBack={false}
-        showProfile={true}
-        onProfilePress={handleProfilePress}
-        avatarUri={profile?.avatarUri}
-        userInitials={
-          profile?.firstName
-            ? `${profile.firstName.charAt(0)}${profile.lastName ? profile.lastName.charAt(0) : ''}`
-            : 'LL'
-        }
-      />
-      <HeroSection
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        showSearch={true}
-      />
-      <MenuBreakdown
-        categories={availableCategories}
-        selectedCategories={selectedCategories}
-        onToggleCategory={handleToggleCategory}
-      />
-    </View>
-  );
-
-  const renderSeparator = () => <View style={styles.separator} />;
-
-  const renderEmpty = () => {
-    if (loading) {
-      return (
-        <View style={styles.emptyContainer}>
-          <ActivityIndicator size="large" color={LittleLemonColors.primaryGreen} />
-          <Text style={styles.emptyText}>Loading Mediterranean flavors...</Text>
-        </View>
-      );
-    }
-    return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyTitle}>No dishes found</Text>
-        <Text style={styles.emptySubtitle}>
-          Try searching with a different keyword or reset filters.
-        </Text>
-        {(searchQuery.length > 0 || selectedCategories.length > 0) && (
+      {/* Top Search Bar */}
+      <View style={styles.searchContainer}>
+        <Ionicons
+          name="search"
+          size={20}
+          color="#FFFFFF"
+          style={styles.searchIcon}
+        />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search"
+          placeholderTextColor={LittleLemonColors.searchPlaceholder}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        {searchQuery.length > 0 && (
           <TouchableOpacity
-            style={styles.resetButton}
-            onPress={() => {
-              setSearchQuery('');
-              setSelectedCategories([]);
-            }}
+            onPress={() => setSearchQuery('')}
+            style={styles.clearButton}
           >
-            <Text style={styles.resetButtonText}>Reset Filters</Text>
+            <Ionicons name="close-circle" size={18} color="#FFFFFF" />
           </TouchableOpacity>
         )}
       </View>
-    );
-  };
 
-  return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
-      <FlatList
-        data={filteredDishes}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <DishItemRow item={item} />}
-        ListHeaderComponent={renderHeader}
-        ItemSeparatorComponent={renderSeparator}
-        ListEmptyComponent={renderEmpty}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        initialNumToRender={8}
-        maxToRenderPerBatch={10}
-      />
+      {/* 3 Category Filter Buttons */}
+      <View style={styles.filtersRow}>
+        {CATEGORIES.map((category) => {
+          const isSelected = selectedCategories.includes(category);
+          return (
+            <TouchableOpacity
+              key={category}
+              style={[
+                styles.filterButton,
+                isSelected
+                  ? styles.filterButtonActive
+                  : styles.filterButtonInactive,
+              ]}
+              onPress={() => handleToggleCategory(category)}
+              activeOpacity={0.8}
+            >
+              <Text
+                style={[
+                  styles.filterText,
+                  isSelected
+                    ? styles.filterTextActive
+                    : styles.filterTextInactive,
+                ]}
+              >
+                {category}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Menu SectionList */}
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FFFFFF" />
+        </View>
+      ) : (
+        <SectionList
+          sections={sections}
+          keyExtractor={(item) => String(item.id)}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          stickySectionHeadersEnabled={false}
+          renderSectionHeader={({ section: { title } }) => (
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionHeaderText}>{title}</Text>
+            </View>
+          )}
+          renderItem={({ item }) => (
+            <View style={styles.itemRow}>
+              <Text style={styles.itemTitle}>{item.title}</Text>
+              <Text style={styles.itemPrice}>${item.price}</Text>
+            </View>
+          )}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No menu items found</Text>
+            </View>
+          }
+        />
+      )}
     </View>
   );
 }
@@ -178,47 +172,107 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: LittleLemonColors.background,
+    backgroundColor: LittleLemonColors.darkBackground,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 14,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: LittleLemonColors.searchBackground,
+    paddingHorizontal: 12,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    height: 44,
+    fontSize: 16,
+    color: '#FFFFFF',
+  },
+  clearButton: {
+    padding: 4,
+  },
+  filtersRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    gap: 8,
+    marginBottom: 16,
+  },
+  filterButton: {
+    flex: 1,
+    height: 38,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  filterButtonActive: {
+    backgroundColor: LittleLemonColors.filterActive,
+    borderColor: LittleLemonColors.filterActive,
+  },
+  filterButtonInactive: {
+    backgroundColor: LittleLemonColors.filterInactive,
+    borderColor: LittleLemonColors.filterBorder,
+  },
+  filterText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  filterTextActive: {
+    color: LittleLemonColors.filterActiveText,
+  },
+  filterTextInactive: {
+    color: LittleLemonColors.filterInactiveText,
   },
   listContent: {
-    paddingBottom: 32,
+    paddingBottom: 40,
   },
-  separator: {
-    height: 1,
-    backgroundColor: LittleLemonColors.divider,
-    marginHorizontal: 20,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 8,
+    backgroundColor: LittleLemonColors.darkBackground,
+  },
+  sectionHeaderText: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  itemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  itemTitle: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  itemPrice: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   emptyContainer: {
     padding: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: LittleLemonColors.textPrimary,
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: LittleLemonColors.textMuted,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
   emptyText: {
-    fontSize: 14,
     color: LittleLemonColors.textMuted,
-    marginTop: 12,
-  },
-  resetButton: {
-    backgroundColor: LittleLemonColors.primaryGreen,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  resetButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 14,
+    fontSize: 15,
   },
 });

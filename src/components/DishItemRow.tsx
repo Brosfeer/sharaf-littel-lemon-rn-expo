@@ -9,30 +9,38 @@ interface DishItemRowProps {
 }
 
 export const DishItemRow: React.FC<DishItemRowProps> = ({ item }) => {
-  const imageSource = LOCAL_DISH_IMAGES[item.image]
-    ? LOCAL_DISH_IMAGES[item.image]
+  const imageName = item.image || '';
+  const imageSource = LOCAL_DISH_IMAGES[imageName]
+    ? LOCAL_DISH_IMAGES[imageName]
     : {
-        uri: item.image.startsWith('http')
-          ? item.image
-          : `https://raw.githubusercontent.com/Meta-Mobile-Developer-PC/Working-With-Data-API/main/images/${item.image}`,
+        uri: imageName.startsWith('http')
+          ? imageName
+          : `https://raw.githubusercontent.com/Meta-Mobile-Developer-PC/Working-With-Data-API/main/images/${imageName}`,
       };
+
+  const displayName = item.title || item.name || '';
+  const displayPrice = typeof item.price === 'number' ? item.price.toFixed(2) : item.price;
 
   return (
     <View style={styles.container}>
       <View style={styles.textContainer}>
-        <Text style={styles.name}>{item.name}</Text>
-        <Text style={styles.description} numberOfLines={2} ellipsizeMode="tail">
-          {item.description}
-        </Text>
-        <Text style={styles.price}>${item.price.toFixed(2)}</Text>
+        <Text style={styles.name}>{displayName}</Text>
+        {item.description ? (
+          <Text style={styles.description} numberOfLines={2} ellipsizeMode="tail">
+            {item.description}
+          </Text>
+        ) : null}
+        <Text style={styles.price}>${displayPrice}</Text>
       </View>
 
-      <Image
-        source={imageSource}
-        style={styles.image}
-        resizeMode="cover"
-        accessibilityLabel={item.name}
-      />
+      {item.image ? (
+        <Image
+          source={imageSource}
+          style={styles.image}
+          resizeMode="cover"
+          accessibilityLabel={displayName}
+        />
+      ) : null}
     </View>
   );
 };

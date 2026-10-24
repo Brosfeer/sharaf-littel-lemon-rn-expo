@@ -1,20 +1,16 @@
 export interface MenuItem {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-  image: string;
+  id: number | string;
+  title: string;
+  price: string | number;
   category: string;
+  name?: string;
+  description?: string;
+  image?: string;
 }
 
-export type MenuCategory = 'all' | 'starters' | 'mains' | 'desserts' | 'drinks';
-
-export interface MenuApiResponse {
-  menu: Array<{
-    name: string;
-    price: number;
-    description: string;
-    image: string;
-    category: string;
-  }>;
+export interface MenuSection {
+  title: string;
+  data: MenuItem[];
 }
+
+export type MenuCategory = 'Appetizers' | 'Salads' | 'Beverages';
