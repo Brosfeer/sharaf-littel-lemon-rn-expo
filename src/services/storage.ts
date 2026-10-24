@@ -71,7 +71,6 @@ export function isValidEmail(email: string): boolean {
 }
 
 export function formatPhoneNumber(value: string): string {
-  // Strip all non-numeric characters
   const cleaned = value.replace(/\D/g, '').slice(0, 10);
   if (cleaned.length === 0) return '';
   if (cleaned.length <= 3) return `(${cleaned}`;

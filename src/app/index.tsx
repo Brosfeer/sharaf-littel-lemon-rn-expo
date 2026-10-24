@@ -31,7 +31,6 @@ export default function HomeScreen() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
-  // Load menu items on mount
   useEffect(() => {
     let isMounted = true;
     async function loadData() {
@@ -54,14 +53,12 @@ export default function HomeScreen() {
     };
   }, []);
 
-  // Reload profile when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       let isMounted = true;
       async function loadProfile() {
         const user = await getUserProfile();
         if (isMounted) {
-          // If user is not onboarded, redirect to onboarding screen
           if (!user.isOnboarded) {
             router.replace('/onboarding');
             return;
@@ -76,7 +73,6 @@ export default function HomeScreen() {
     }, [router])
   );
 
-  // Toggle category chips
   const handleToggleCategory = (category: string) => {
     setSelectedCategories((prev) => {
       if (prev.includes(category)) {
@@ -87,12 +83,10 @@ export default function HomeScreen() {
     });
   };
 
-  // Filtered menu items
   const filteredDishes = useMemo(() => {
     return filterMenuItems(menuItems, searchQuery, selectedCategories);
   }, [menuItems, searchQuery, selectedCategories]);
 
-  // Extract distinct categories from dataset
   const availableCategories = useMemo(() => {
     const defaultList = ['starters', 'mains', 'desserts', 'drinks'];
     const found = Array.from(new Set(menuItems.map((item) => item.category)));

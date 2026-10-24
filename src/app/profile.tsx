@@ -123,14 +123,13 @@ export default function ProfileScreen() {
   };
 
   const handleChangeAvatar = () => {
-    // In actual app, can launch ImagePicker. For test/demo, prompt to choose or toggle
     Alert.alert(
       'Change Avatar',
       'Select a preset avatar or use photo library:',
       [
         {
           text: 'Tilly Doe (Preset)',
-          onPress: () => setAvatarUri(null), // resets to default official asset
+          onPress: () => setAvatarUri(null),
         },
         { text: 'Cancel', style: 'cancel' },
       ]

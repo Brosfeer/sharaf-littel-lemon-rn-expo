@@ -9,7 +9,6 @@ interface DishItemRowProps {
 }
 
 export const DishItemRow: React.FC<DishItemRowProps> = ({ item }) => {
-  // Resolve image from local bundled assets or remote URL
   const imageSource = LOCAL_DISH_IMAGES[item.image]
     ? LOCAL_DISH_IMAGES[item.image]
     : {

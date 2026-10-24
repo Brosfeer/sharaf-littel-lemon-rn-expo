@@ -91,7 +91,6 @@ export function filterMenuItems(
   const query = searchQuery.trim().toLowerCase();
 
   return items.filter((item) => {
-    // Category match
     const categoryMatch =
       selectedCategories.length === 0 ||
       selectedCategories.includes(item.category.toLowerCase());
@@ -100,7 +99,6 @@ export function filterMenuItems(
       return false;
     }
 
-    // Query match
     if (!query) {
       return true;
     }
